@@ -7,18 +7,20 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: #e5ddd5;
             margin: 0;
             padding: 0;
         }
 
         .chat-container {
             width: 100%;
-            max-width: 600px;
-            margin: 20px auto;
+            max-width: 400px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             background-color: #fff;
             border-radius: 10px;
-            overflow: hidden;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
@@ -27,21 +29,26 @@
             color: #fff;
             padding: 15px;
             text-align: center;
+            font-size: 20px;
+            font-weight: bold;
         }
 
         .chat-messages {
+            flex: 1;
             padding: 20px;
-            height: 400px;
-            overflow-y: scroll;
-            background-color: #e5ddd5;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
         }
 
         .message {
             max-width: 70%;
-            margin: 10px 0;
+            margin: 10px;
             padding: 10px;
             border-radius: 10px;
             position: relative;
+            font-size: 14px;
+            line-height: 1.5;
         }
 
         .message.sent {
@@ -91,26 +98,60 @@
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <h3>الدردشة</h3>
+            دردشة مع صديق
         </div>
-        <div class="chat-messages">
-            <div class="message received">
-                <p>مرحبًا! كيف يمكنني مساعدتك اليوم؟</p>
-                <span class="message-time">10:00 AM</span>
-            </div>
-            <div class="message sent">
-                <p>مرحبًا، لدي سؤال حول المنتج.</p>
-                <span class="message-time">10:02 AM</span>
-            </div>
-            <div class="message received">
-                <p>بالطبع، ما هو سؤالك؟</p>
-                <span class="message-time">10:03 AM</span>
-            </div>
+        <div class="chat-messages" id="messages">
+            <!-- الرسائل تظهر هنا -->
         </div>
         <div class="chat-footer">
-            <input type="text" placeholder="اكتب رسالة...">
-            <button>➤</button>
+            <input type="text" id="messageInput" placeholder="اكتب رسالة...">
+            <button id="sendButton">➤</button>
         </div>
     </div>
+
+    <script>
+        const sendButton = document.getElementById("sendButton");
+        const messageInput = document.getElementById("messageInput");
+        const messagesContainer = document.getElementById("messages");
+
+        sendButton.addEventListener("click", sendMessage);
+
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+
+            if (messageText !== "") {
+                const message = createMessage(messageText, "sent");
+                messagesContainer.appendChild(message);
+                messageInput.value = ""; // Clear input field
+                scrollToBottom();
+                setTimeout(() => {
+                    const replyMessage = createMessage("تم استلام رسالتك", "received");
+                    messagesContainer.appendChild(replyMessage);
+                    scrollToBottom();
+                }, 1000); // Simulate a reply after 1 second
+            }
+        }
+
+        function createMessage(text, type) {
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message", type);
+
+            const messageContent = document.createElement("p");
+            messageContent.textContent = text;
+            messageDiv.appendChild(messageContent);
+
+            const messageTime = document.createElement("span");
+            messageTime.classList.add("message-time");
+            const time = new Date();
+            messageTime.textContent = `${time.getHours()}:${time.getMinutes()}`;
+            messageDiv.appendChild(messageTime);
+
+            return messageDiv;
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    </script>
 </body>
 </html>

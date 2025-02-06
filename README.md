@@ -1,157 +1,127 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شات مشابه لواتساب</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #e5ddd5;
-            margin: 0;
-            padding: 0;
-        }
+import React, { useState, useEffect } from "react";
+import { initializeApp } from "firebase/app";
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, onAuthStateChanged } from "firebase/auth";
+import { getDatabase, ref, push, onValue } from "firebase/database";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
+import { useTranslation } from "react-i18next";
+import i18n from "./i18n";
 
-        .chat-container {
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 
-        .chat-header {
-            background-color: #075e54;
-            color: #fff;
-            padding: 15px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-        }
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const database = getDatabase(app);
 
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column-reverse;
-        }
+export default function ChatApp() {
+  const { t } = useTranslation();
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [user, setUser] = useState(null);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
 
-        .message {
-            max-width: 70%;
-            margin: 10px;
-            padding: 10px;
-            border-radius: 10px;
-            position: relative;
-            font-size: 14px;
-            line-height: 1.5;
-        }
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (authenticatedUser) => {
+      setUser(authenticatedUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
-        .message.sent {
-            background-color: #dcf8c6;
-            align-self: flex-end;
+  useEffect(() => {
+    if (user) {
+      const messagesRef = ref(database, "messages");
+      onValue(messagesRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setMessages(Object.values(data));
         }
+      });
+    }
+  }, [user]);
 
-        .message.received {
-            background-color: #fff;
-            align-self: flex-start;
-        }
+  const sendOtp = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+    }
+    const appVerifier = window.recaptchaVerifier;
+    signInWithPhoneNumber(auth, `+${phone}`, appVerifier)
+      .then((confirmationResult) => {
+        window.confirmationResult = confirmationResult;
+        alert(t("otp_sent"));
+      })
+      .catch((error) => console.error("OTP Error:", error));
+  };
 
-        .message-time {
-            font-size: 10px;
-            color: #999;
-            position: absolute;
-            bottom: 5px;
-            left: 10px;
-        }
+  const verifyOtp = () => {
+    if (window.confirmationResult) {
+      window.confirmationResult.confirm(otp)
+        .then((result) => {
+          setUser(result.user);
+        })
+        .catch((error) => console.error("OTP Verification Error:", error));
+    }
+  };
 
-        .chat-footer {
-            display: flex;
-            padding: 10px;
-            background-color: #fff;
-            border-top: 1px solid #ddd;
-        }
+  const sendMessage = () => {
+    if (message && user) {
+      push(ref(database, "messages"), { text: message, sender: user.phoneNumber || "Unknown" });
+      setMessage("");
+    }
+  };
 
-        .chat-footer input {
-            width: 85%;
-            padding: 10px;
-            border-radius: 20px;
-            border: 1px solid #ddd;
-            margin-right: 10px;
-        }
-
-        .chat-footer button {
-            background-color: #075e54;
-            color: #fff;
-            border: none;
-            border-radius: 50%;
-            padding: 10px;
-            cursor: pointer;
-        }
-
-    </style>
-</head>
-<body>
-    <div class="chat-container">
-        <div class="chat-header">
-            دردشة مع صديق
+  return (
+    <div className="p-4 max-w-md mx-auto">
+      <button onClick={() => i18n.changeLanguage(i18n.language === "en" ? "ar" : "en")} className="bg-gray-500 text-white p-2 w-full mb-2">
+        {t("change_language")}
+      </button>
+      {!user ? (
+        <div>
+          <PhoneInput
+            country={"us"}
+            value={phone}
+            onChange={setPhone}
+            inputClass="border p-2 w-full"
+          />
+          <button onClick={sendOtp} className="bg-green-500 text-white p-2 w-full mt-2">{t("send_otp")}</button>
+          <div id="recaptcha-container"></div>
+          <input 
+            type="text" 
+            placeholder={t("enter_otp")} 
+            value={otp} 
+            onChange={(e) => setOtp(e.target.value)}
+            className="border p-2 w-full mt-2" 
+          />
+          <button onClick={verifyOtp} className="bg-blue-500 text-white p-2 w-full mt-2">{t("verify_otp")}</button>
         </div>
-        <div class="chat-messages" id="messages">
-            <!-- الرسائل تظهر هنا -->
+      ) : (
+        <div>
+          <h2 className="text-lg font-bold">{t("chat")}</h2>
+          <div className="border p-4 h-64 overflow-auto">
+            {messages.map((msg, index) => (
+              <div key={index} className="p-2 border-b">
+                <strong>{msg.sender}: </strong>{msg.text}
+              </div>
+            ))}
+          </div>
+          <input 
+            type="text" 
+            placeholder={t("type_message")} 
+            value={message} 
+            onChange={(e) => setMessage(e.target.value)}
+            className="border p-2 w-full mt-2" 
+          />
+          <button onClick={sendMessage} className="bg-green-500 text-white p-2 w-full mt-2">{t("send")}</button>
         </div>
-        <div class="chat-footer">
-            <input type="text" id="messageInput" placeholder="اكتب رسالة...">
-            <button id="sendButton">➤</button>
-        </div>
+      )}
     </div>
-
-    <script>
-        const sendButton = document.getElementById("sendButton");
-        const messageInput = document.getElementById("messageInput");
-        const messagesContainer = document.getElementById("messages");
-
-        sendButton.addEventListener("click", sendMessage);
-
-        function sendMessage() {
-            const messageText = messageInput.value.trim();
-
-            if (messageText !== "") {
-                const message = createMessage(messageText, "sent");
-                messagesContainer.appendChild(message);
-                messageInput.value = ""; // Clear input field
-                scrollToBottom();
-                setTimeout(() => {
-                    const replyMessage = createMessage("تم استلام رسالتك", "received");
-                    messagesContainer.appendChild(replyMessage);
-                    scrollToBottom();
-                }, 1000); // Simulate a reply after 1 second
-            }
-        }
-
-        function createMessage(text, type) {
-            const messageDiv = document.createElement("div");
-            messageDiv.classList.add("message", type);
-
-            const messageContent = document.createElement("p");
-            messageContent.textContent = text;
-            messageDiv.appendChild(messageContent);
-
-            const messageTime = document.createElement("span");
-            messageTime.classList.add("message-time");
-            const time = new Date();
-            messageTime.textContent = `${time.getHours()}:${time.getMinutes()}`;
-            messageDiv.appendChild(messageTime);
-
-            return messageDiv;
-        }
-
-        function scrollToBottom() {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-    </script>
-</body>
-</html>
+  );
+}

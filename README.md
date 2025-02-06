@@ -6,6 +6,47 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+
+const resources = {
+  en: {
+    translation: {
+      change_language: "Change Language",
+      send_otp: "Send OTP",
+      enter_otp: "Enter OTP",
+      verify_otp: "Verify OTP",
+      chat: "Chat",
+      type_message: "Type a message...",
+      send: "Send",
+      otp_sent: "OTP has been sent!",
+    },
+  },
+  ar: {
+    translation: {
+      change_language: "تغيير اللغة",
+      send_otp: "إرسال رمز التحقق",
+      enter_otp: "أدخل رمز التحقق",
+      verify_otp: "تحقق من الرمز",
+      chat: "الدردشة",
+      type_message: "اكتب رسالة...",
+      send: "إرسال",
+      otp_sent: "تم إرسال رمز التحقق!",
+    },
+  },
+};
+
+i18n.use(initReactI18next).init({
+  resources,
+  lng: "en",
+  fallbackLng: "en",
+  interpolation: {
+    escapeValue: false,
+  },
+});
+
+export default i18n;
+
 
 // Firebase Configuration
 const firebaseConfig = {

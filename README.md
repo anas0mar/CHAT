@@ -5,6 +5,7 @@ import { getDatabase, ref, push, onValue } from "firebase/database";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 // i18n Configuration with Multiple Languages
